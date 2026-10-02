@@ -1,5 +1,7 @@
 # Durable object cleanup
 
+[![CI](https://github.com/urazaev/durable-object-cleanup/actions/workflows/check.yml/badge.svg)](https://github.com/urazaev/durable-object-cleanup/actions/workflows/check.yml)
+
 A small TypeScript example of deleting database metadata and external objects without losing cleanup work when a process crashes. PostgreSQL stores the cleanup manifest in the same transaction that deletes the catalog entry. A separate worker removes the file only after its claim transaction commits.
 
 The interesting boundary is between two systems: a database rollback cannot restore an already deleted external object. This example keeps that external deletion on the committed side of the boundary, and makes a repeated delete safe through permanent, nonreused object keys.
@@ -24,6 +26,8 @@ Compose exposes PostgreSQL only on `127.0.0.1:55433` and uses disposable, memory
 Each integration test and demo creates its own random schema and temporary filesystem directory, then removes those resources. They do not migrate or truncate pre-existing tables. The harness rejects remote hosts, other protocols, connection-string query parameters and fragments, so URL overrides cannot silently change its host or schema options. Do not use a production database.
 
 The demo shows a reference preventing deletion, then removes that reference, commits the deletion and runs the worker. `npm run test:unit` runs only the filesystem adapter tests without PostgreSQL. The full test command deliberately fails if a database URL is missing.
+
+The GitHub Actions workflow runs on pushes and pull requests with Node.js 22 and a temporary PostgreSQL 15 service. It installs the lockfile, checks types and formatting, runs the full test suite, and exercises the demo.
 
 ## Read the implementation
 

@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: cleanup
+          POSTGRES_PASSWORD: cleanup
+          POSTGRES_DB: cleanup_test
+        ports:
+          - '127.0.0.1:55433:5432'
+        options: >-
+          --health-cmd "pg_isready -U cleanup -d cleanup_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://cleanup:cleanup@127.0.0.1:55433/cleanup_test
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run check
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run demo
