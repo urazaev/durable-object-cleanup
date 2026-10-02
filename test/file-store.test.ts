@@ -12,8 +12,20 @@ test('flat generation keys are confined, immutable and idempotently deleted', as
   const store = await FileObjectStore.open(root);
   const key = randomUUID();
   await store.writeNew(key, Buffer.from('original'));
-  await assert.rejects(store.writeNew(key, Buffer.from('replacement')), /EEXIST/);
-  for (const invalid of ['../outside', '/tmp/outside', `${key}/child`, '', key.toUpperCase()]) {
+  await assert.rejects(
+    store.writeNew(key, Buffer.from('replacement')),
+    /EEXIST/,
+  );
+  for (const invalid of [
+    '../outside',
+    '/tmp/outside',
+    `${key}/child`,
+    '',
+    key.toUpperCase(),
+    `${key}\n`,
+    `${key}\u2028`,
+    `${key}\u2029`,
+  ]) {
     await assert.rejects(store.delete(invalid), /Invalid object key/);
   }
   assert.equal(await readFile(join(root, key), 'utf8'), 'original');
@@ -24,7 +36,12 @@ test('flat generation keys are confined, immutable and idempotently deleted', as
 test('a symlink key cannot lead the adapter outside its root', async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'cleanup-store-'));
   const outside = await mkdtemp(join(tmpdir(), 'cleanup-outside-'));
-  t.after(() => Promise.all([rm(root, { recursive: true, force: true }), rm(outside, { recursive: true, force: true })]));
+  t.after(() =>
+    Promise.all([
+      rm(root, { recursive: true, force: true }),
+      rm(outside, { recursive: true, force: true }),
+    ]),
+  );
   const target = join(outside, 'must-survive');
   const { writeFile } = await import('node:fs/promises');
   await writeFile(target, 'safe');
