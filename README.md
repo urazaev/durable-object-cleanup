@@ -47,11 +47,14 @@ sequenceDiagram
   participant DB as PostgreSQL
   participant W as Cleanup worker
   participant FS as Local object store
-  A->>DB: BEGIN; lock generation; DELETE catalog entry
+  A->>DB: BEGIN
+  A->>DB: Lock object generation
+  A->>DB: DELETE catalog entry
   Note over DB: Trigger retires key and inserts job.<br/>Existing references reject the entire transaction.
   A->>DB: COMMIT
   DB-->>A: Commit acknowledged
-  W->>DB: BEGIN; claim ready job with SKIP LOCKED
+  W->>DB: BEGIN
+  W->>DB: Claim ready job with SKIP LOCKED
   W->>DB: COMMIT
   DB-->>W: Claim acknowledged
   W->>FS: Delete immutable generation key
